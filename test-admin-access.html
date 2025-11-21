@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel Access Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f0e8;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2D5016;
+        }
+        button {
+            background: #2D5016;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #4A6741;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f0f0f0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .info {
+            background: #d1ecf1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Admin Panel Access Test</h1>
+        
+        <div class="info">
+            <strong>Admin Credentials:</strong><br>
+            Email: admin@admin.com<br>
+            Password: Ritu@123
+        </div>
+
+        <h3>Step 1: Login as Admin</h3>
+        <input type="email" id="email" placeholder="Email" value="admin@admin.com">
+        <input type="password" id="password" placeholder="Password" value="Ritu@123">
+        <button onclick="loginAdmin()">Login as Admin</button>
+
+        <h3>Step 2: Test Admin Access</h3>
+        <button onclick="testAdminStats()">Test Admin Stats</button>
+        <button onclick="testAdminFoods()">Test Admin Foods</button>
+        <button onclick="testAdminUsers()">Test Admin Users</button>
+
+        <h3>Step 3: Open Admin Panel</h3>
+        <button onclick="openAdminPanel()">Open Admin Panel in Browser</button>
+
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        function showResult(message, isSuccess) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = isSuccess ? 'result success' : 'result error';
+            resultDiv.innerHTML = message;
+        }
+
+        async function loginAdmin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    showResult(`
+                        ✅ Login Successful!<br><br>
+                        <strong>User Details:</strong><br>
+                        Name: ${data.user.name}<br>
+                        Email: ${data.user.email}<br>
+                        Admin: ${data.user.isAdmin ? 'Yes ✓' : 'No ✗'}<br>
+                        Token: ${data.token.substring(0, 20)}...<br><br>
+                        ${data.user.isAdmin ? '✓ You have admin access!' : '✗ This user is not an admin'}
+                    `, true);
+                } else {
+                    showResult(`❌ Login Failed: ${data.message}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+
+        async function testAdminStats() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showResult('❌ Please login first!', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult(`
+                        ✅ Admin Stats Retrieved!<br><br>
+                        👥 Total Users: ${data.users}<br>
+                        🍽️ Total Foods: ${data.foods}<br>
+                        📋 Health Logs: ${data.healthLogs}
+                    `, true);
+                } else {
+                    showResult(`❌ Access Denied: ${data.message}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+
+        async function testAdminFoods() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showResult('❌ Please login first!', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/foods`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let foodsList = data.slice(0, 5).map((food, i) => 
+                        `${i + 1}. ${food.name} (${food.category})`
+                    ).join('<br>');
+                    
+                    showResult(`
+                        ✅ Foods Retrieved!<br><br>
+                        Total Foods: ${data.length}<br><br>
+                        <strong>First 5 Foods:</strong><br>
+                        ${foodsList}
+                        ${data.length > 5 ? '<br>... and more' : ''}
+                    `, true);
+                } else {
+                    showResult(`❌ Access Denied: ${data.message}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+
+        async function testAdminUsers() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showResult('❌ Please login first!', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let usersList = data.map((user, i) => 
+                        `${i + 1}. ${user.name} (${user.email}) - Admin: ${user.isAdmin ? 'Yes' : 'No'}`
+                    ).join('<br>');
+                    
+                    showResult(`
+                        ✅ Users Retrieved!<br><br>
+                        Total Users: ${data.length}<br><br>
+                        <strong>All Users:</strong><br>
+                        ${usersList}
+                    `, true);
+                } else {
+                    showResult(`❌ Access Denied: ${data.message}`, false);
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, false);
+            }
+        }
+
+        function openAdminPanel() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (!token || !user) {
+                showResult('❌ Please login first!', false);
+                return;
+            }
+
+            const userData = JSON.parse(user);
+            if (!userData.isAdmin) {
+                showResult('❌ You need admin privileges to access the admin panel!', false);
+                return;
+            }
+
+            window.open('http://localhost:3000/admin', '_blank');
+            showResult('✅ Opening admin panel in new tab...', true);
+        }
+    </script>
+</body>
+</html>

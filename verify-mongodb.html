@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoDB Atlas Connection Verification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2D5016 0%, #4A6741 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .status.connected {
+            background: #28a745;
+        }
+        .status.disconnected {
+            background: #dc3545;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #2D5016;
+        }
+        .section h2 {
+            color: #2D5016;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .info-card .number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #2D5016;
+            margin: 10px 0;
+        }
+        .info-card .label {
+            color: #666;
+            font-size: 1.1em;
+        }
+        button {
+            background: #2D5016;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #4A6741;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .data-table th {
+            background: #2D5016;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .badge.admin {
+            background: #28a745;
+            color: white;
+        }
+        .badge.user {
+            background: #6c757d;
+            color: white;
+        }
+        .badge.featured {
+            background: #ffc107;
+            color: #000;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗄️ MongoDB Atlas Connection</h1>
+            <div id="connectionStatus" class="status">Checking...</div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>📊 Database Statistics</h2>
+                <div class="info-grid" id="statsGrid">
+                    <div class="loading">Loading statistics...</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>👥 Users in Database</h2>
+                <div id="usersSection">
+                    <div class="loading">Loading users...</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🍽️ Foods in Database</h2>
+                <div id="foodsSection">
+                    <div class="loading">Loading foods...</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>🔧 Actions</h2>
+                <button onclick="refreshData()">🔄 Refresh Data</button>
+                <button onclick="window.open('http://localhost:3000', '_blank')">🏠 Open Homepage</button>
+                <button onclick="window.open('http://localhost:3000/admin', '_blank')">⚙️ Open Admin Panel</button>
+                <button onclick="window.open('http://localhost:5000/api/health-check', '_blank')">🏥 API Health Check</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+
+        async function checkConnection() {
+            try {
+                const response = await fetch(`${API_URL}/health-check`);
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('connectionStatus');
+                if (response.ok) {
+                    statusDiv.className = 'status connected';
+                    statusDiv.textContent = '✅ Connected to MongoDB Atlas';
+                } else {
+                    statusDiv.className = 'status disconnected';
+                    statusDiv.textContent = '❌ Connection Failed';
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('connectionStatus');
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = '❌ Backend Not Running';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                // Login as admin first
+                const loginResponse = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@admin.com',
+                        password: 'Ritu@123'
+                    })
+                });
+
+                if (!loginResponse.ok) {
+                    throw new Error('Admin login failed');
+                }
+
+                const loginData = await loginResponse.json();
+                const token = loginData.token;
+
+                // Get stats
+                const statsResponse = await fetch(`${API_URL}/admin/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const stats = await statsResponse.json();
+
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="info-card">
+                        <div class="label">👥 Total Users</div>
+                        <div class="number">${stats.users}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">🍽️ Total Foods</div>
+                        <div class="number">${stats.foods}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="label">📋 Health Logs</div>
+                        <div class="number">${stats.healthLogs}</div>
+                    </div>
+                `;
+
+                return token;
+            } catch (error) {
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="error">Error loading stats: ${error.message}</div>
+                `;
+                return null;
+            }
+        }
+
+        async function loadUsers(token) {
+            try {
+                const response = await fetch(`${API_URL}/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const users = await response.json();
+
+                if (users.length === 0) {
+                    document.getElementById('usersSection').innerHTML = '<p>No users found.</p>';
+                    return;
+                }
+
+                let html = '<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Age</th><th>Gender</th><th>Role</th></tr></thead><tbody>';
+                
+                users.forEach(user => {
+                    html += `
+                        <tr>
+                            <td>${user.name}</td>
+                            <td>${user.email}</td>
+                            <td>${user.age || 'N/A'}</td>
+                            <td>${user.gender || 'N/A'}</td>
+                            <td><span class="badge ${user.isAdmin ? 'admin' : 'user'}">${user.isAdmin ? 'Admin' : 'User'}</span></td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                document.getElementById('usersSection').innerHTML = html;
+            } catch (error) {
+                document.getElementById('usersSection').innerHTML = `
+                    <div class="error">Error loading users: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function loadFoods(token) {
+            try {
+                const response = await fetch(`${API_URL}/admin/foods`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const foods = await response.json();
+
+                if (foods.length === 0) {
+                    document.getElementById('foodsSection').innerHTML = '<p>No foods found.</p>';
+                    return;
+                }
+
+                let html = '<table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Diseases</th><th>Status</th></tr></thead><tbody>';
+                
+                foods.forEach(food => {
+                    html += `
+                        <tr>
+                            <td><strong>${food.name}</strong></td>
+                            <td>${food.category}</td>
+                            <td>${food.diseases?.slice(0, 3).join(', ') || 'N/A'}</td>
+                            <td>${food.featured ? '<span class="badge featured">Featured</span>' : ''}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                document.getElementById('foodsSection').innerHTML = html;
+            } catch (error) {
+                document.getElementById('foodsSection').innerHTML = `
+                    <div class="error">Error loading foods: ${error.message}</div>
+                `;
+            }
+        }
+
+        async function refreshData() {
+            await checkConnection();
+            const token = await loadStats();
+            if (token) {
+                await loadUsers(token);
+                await loadFoods(token);
+            }
+        }
+
+        // Load data on page load
+        window.onload = refreshData;
+    </script>
+</body>
+</html>
