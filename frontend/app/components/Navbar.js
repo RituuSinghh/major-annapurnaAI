@@ -8,20 +8,53 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    setIsLoggedIn(!!token);
-    setIsAdmin(user.isAdmin || false);
+    if (typeof window !== 'undefined') {
+      setIsClient(true);
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      setIsLoggedIn(!!token);
+      setIsAdmin(user.isAdmin || false);
+    }
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    window.location.href = '/';
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setIsLoggedIn(false);
+      window.location.href = '/';
+    }
   };
+
+  // Don't render auth-related UI on server
+  if (!isClient) {
+    return (
+      <nav className="bg-ayurveda-primary text-white shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center space-x-2">
+                <Leaf className="h-8 w-8 text-ayurveda-beige" />
+                <span className="text-2xl font-bold text-ayurveda-beige">AnnapurnaAI</span>
+              </Link>
+            </div>
+            <div className="hidden md:flex items-center space-x-8">
+              <Link href="/" className="hover:text-ayurveda-beige transition">Home</Link>
+              <Link href="/remedies" className="hover:text-ayurveda-beige transition">Remedies</Link>
+            </div>
+            <div className="md:hidden flex items-center">
+              <button className="text-white">
+                <Menu className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-ayurveda-primary text-white shadow-lg sticky top-0 z-50">

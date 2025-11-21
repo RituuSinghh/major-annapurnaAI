@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-export const dynamic = 'force-client';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -20,9 +19,11 @@ export default function ProfileSetup() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+      }
     }
   }, []);
 
@@ -43,14 +44,17 @@ export default function ProfileSetup() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return;
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-      await axios.put(
-        `${API_URL}/user/profile`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      if (token) {
+        await axios.put(
+          `${API_URL}/user/profile`,
+          formData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
 
       router.push('/dashboard');
     } catch (error) {

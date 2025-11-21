@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-export const dynamic = 'force-client';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -20,9 +19,11 @@ export default function Chatbot() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+      }
     }
   }, []);
 
@@ -44,7 +45,8 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return;
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await axios.post(
         `${API_URL}/chat/message`,

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-export const dynamic = 'force-client';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -26,8 +25,10 @@ export default function Login() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await axios.post(`${API_URL}/auth/login`, formData);
 
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
 
       if (response.data.user.hasProfile) {
         router.push('/dashboard');

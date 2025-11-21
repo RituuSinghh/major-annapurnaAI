@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 
-export const dynamic = 'force-client';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -22,19 +21,22 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
 
-    fetchUserData();
-    fetchHealthStats();
+      fetchUserData();
+      fetchHealthStats();
+    }
   }, []);
 
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return;
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await axios.get(`${API_URL}/user/profile`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -47,7 +49,8 @@ export default function Dashboard() {
 
   const fetchHealthStats = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return;
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await axios.get(`${API_URL}/health/stats`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -61,7 +64,8 @@ export default function Dashboard() {
   const handleAddStats = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return;
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       await axios.post(
         `${API_URL}/health/log`,
@@ -84,6 +88,18 @@ export default function Dashboard() {
     if (sleep >= 7) score += 25;
     return Math.min(score, 100);
   };
+
+  // Don't render user-specific content on server
+  if (typeof window === 'undefined') {
+    return (
+      <div className="min-h-screen bg-ayurveda-light">
+        <Navbar />
+        <div className="flex items-center justify-center h-screen">
+          <p className="text-ayurveda-primary">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user || !stats) {
     return (

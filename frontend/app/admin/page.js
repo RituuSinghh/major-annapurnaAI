@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-export const dynamic = 'force-client';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
@@ -17,17 +16,20 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (!user.isAdmin) {
-      router.push('/dashboard');
-      return;
+    if (typeof window !== 'undefined') {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!user.isAdmin) {
+        router.push('/dashboard');
+        return;
+      }
+      fetchData();
     }
-    fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return;
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
       const [statsRes, foodsRes, usersRes] = await Promise.all([
@@ -58,7 +60,8 @@ export default function AdminPanel() {
     if (!confirm('Are you sure you want to delete this food item?')) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return;
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
       await axios.delete(`${API_URL}/admin/foods/${id}`, {
