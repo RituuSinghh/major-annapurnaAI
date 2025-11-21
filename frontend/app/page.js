@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
+export const dynamic = 'force-client';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import FeaturedFoods from './components/FeaturedFoods';

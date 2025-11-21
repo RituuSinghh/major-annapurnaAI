@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: annapurna-frontend
+    env: node
+    buildCommand: npm install && cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm run start
+    staticPublishPath: frontend/.next
+    routes:
+      - type: rewrite
+        source: /
+        destination: /index.html
